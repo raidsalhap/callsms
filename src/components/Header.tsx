@@ -9,6 +9,7 @@ import {
   HelpCircle,
   Smartphone,
 } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
 
 export type MainNavTab = 'dialer' | 'sms' | 'gateway' | 'guide' | 'remotedesk';
 
@@ -24,23 +25,30 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenHe
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30">
-              <Phone className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base font-extrabold text-white tracking-wide">
-                  Global SIM Relay & VoIP Bridge
-                </h1>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Bluetooth HFP Live
-                </span>
+          <div className="flex items-center justify-between lg:justify-start gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-500/30">
+                <Phone className="w-5 h-5" />
               </div>
-              <p className="text-[11px] text-slate-400">
-                إجراء واستقبال مكالمات ورسائل الشريحة البعيدة كأنك متواجد محلياً
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base font-extrabold text-white tracking-wide">
+                    Global SIM Relay & VoIP Bridge
+                  </h1>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono font-bold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Bluetooth HFP Live
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  إجراء واستقبال مكالمات ورسائل الشريحة البعيدة كأنك متواجد محلياً
+                </p>
+              </div>
+            </div>
+
+            {/* Mobile PWA Install Button */}
+            <div className="lg:hidden">
+              <PWAInstallButton />
             </div>
           </div>
 
@@ -112,6 +120,8 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenHe
 
           {/* Right Status */}
           <div className="hidden lg:flex items-center gap-3">
+            <PWAInstallButton />
+
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
               <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
               <span>Galaxy S21: متصل 4G</span>
