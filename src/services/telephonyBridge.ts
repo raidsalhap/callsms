@@ -89,7 +89,19 @@ export class TelephonyBridgeService {
       }
     }
 
-    const cleanUrl = url.trim();
+    let cleanUrl = url.trim();
+    if (cleanUrl.startsWith('https://')) {
+      cleanUrl = cleanUrl.replace('https://', 'wss://');
+    } else if (cleanUrl.startsWith('http://')) {
+      cleanUrl = cleanUrl.replace('http://', 'ws://');
+    } else if (!cleanUrl.startsWith('ws://') && !cleanUrl.startsWith('wss://')) {
+      if (cleanUrl.includes('trycloudflare.com') || cleanUrl.includes('ngrok')) {
+        cleanUrl = `wss://${cleanUrl}`;
+      } else {
+        cleanUrl = `ws://${cleanUrl}`;
+      }
+    }
+
     this.connectionState.isConnecting = true;
     this.connectionState.error = null;
     this.connectionState.serverUrl = cleanUrl;
