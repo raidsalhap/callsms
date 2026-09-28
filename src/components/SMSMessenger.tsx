@@ -18,8 +18,8 @@ import { SMSMessage } from '../types/telephony';
 import { telephonyBridge } from '../services/telephonyBridge';
 
 export const SMSMessenger: React.FC = () => {
-  const [messages, setMessages] = useState<SMSMessage[]>(telephonyBridge.initialSMS);
-  const [selectedContact, setSelectedContact] = useState<string>('البنك الأهلي');
+  const [messages, setMessages] = useState<SMSMessage[]>(telephonyBridge.getSavedSMS());
+  const [selectedContact, setSelectedContact] = useState<string>('');
   const [newRecipient, setNewRecipient] = useState('');
   const [newMessageText, setNewMessageText] = useState('');
   const [copiedOtp, setCopiedOtp] = useState<string | null>(null);
@@ -28,20 +28,30 @@ export const SMSMessenger: React.FC = () => {
   // Group messages by contact/sender
   const contacts = Array.from(new Set(messages.map((m) => (m.direction === 'inbound' ? m.sender : m.recipient))));
 
+  useEffect(() => {
+    if (!selectedContact && contacts.length > 0) {
+      setSelectedContact(contacts[0]);
+    }
+  }, [contacts, selectedContact]);
+
   // Handle new incoming SMS
   useEffect(() => {
     const unsubscribe = telephonyBridge.subscribe((action, payload) => {
-      if (action === 'INCOMING_SMS') {
+      if (action === 'INCOMING_SMS' || action === 'SMS_RECEIVED') {
         const newMsg: SMSMessage = {
           id: `sms-${Date.now()}`,
-          sender: payload.sender || '+966500000000',
+          sender: payload.sender || payload.number || 'رسالة نصية جديدة',
           recipient: 'جهازي البعيد',
-          body: payload.body || 'رسالة جديدة واردة من الشريحة المحلية',
+          body: payload.body || payload.message || '',
           timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           direction: 'inbound',
           status: 'received',
         };
-        setMessages((prev) => [newMsg, ...prev]);
+        setMessages((prev) => {
+          const updated = [newMsg, ...prev];
+          telephonyBridge.saveSMS(updated);
+          return updated;
+        });
         setSelectedContact(newMsg.sender);
       }
     });
@@ -121,40 +131,50 @@ export const SMSMessenger: React.FC = () => {
 
         {/* Contacts List */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-          {contacts.map((contact, i) => {
-            const lastMsg = messages.find(
-              (m) => m.sender === contact || m.recipient === contact
-            );
-            const isSelected = selectedContact === contact && !isComposing;
+          {contacts.length === 0 ? (
+            <div className="p-6 text-center text-xs text-slate-500 space-y-2">
+              <MessageSquare className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="font-semibold text-slate-400">لا توجد رسائل واردة بعد</p>
+              <p className="text-[11px] leading-relaxed">
+                أي رسالة بنكية أو كود تحقق (OTP) يصل إلى شريحة الهاتف ستظهر وتُحفظ هنا فوراً.
+              </p>
+            </div>
+          ) : (
+            contacts.map((contact, i) => {
+              const lastMsg = messages.find(
+                (m) => m.sender === contact || m.recipient === contact
+              );
+              const isSelected = selectedContact === contact && !isComposing;
 
-            return (
-              <div
-                key={i}
-                onClick={() => {
-                  setSelectedContact(contact);
-                  setIsComposing(false);
-                }}
-                className={`p-3 rounded-2xl flex items-center justify-between transition cursor-pointer ${
-                  isSelected
-                    ? 'bg-indigo-600/20 border border-indigo-500/40 text-white'
-                    : 'hover:bg-slate-900 text-slate-300 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-3 truncate">
-                  <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center font-bold text-xs text-indigo-300 shrink-0">
-                    <User className="w-4 h-4" />
+              return (
+                <div
+                  key={i}
+                  onClick={() => {
+                    setSelectedContact(contact);
+                    setIsComposing(false);
+                  }}
+                  className={`p-3 rounded-2xl flex items-center justify-between transition cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-600/20 border border-indigo-500/40 text-white'
+                      : 'hover:bg-slate-900 text-slate-300 border border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 truncate">
+                    <div className="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center font-bold text-xs text-indigo-300 shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="truncate text-right">
+                      <p className="font-bold text-xs truncate">{contact}</p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{lastMsg?.body}</p>
+                    </div>
                   </div>
-                  <div className="truncate text-right">
-                    <p className="font-bold text-xs truncate">{contact}</p>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5">{lastMsg?.body}</p>
-                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono shrink-0">
+                    {lastMsg?.timestamp}
+                  </span>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono shrink-0">
-                  {lastMsg?.timestamp}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -185,7 +205,18 @@ export const SMSMessenger: React.FC = () => {
 
         {/* Messages Scroll Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col-reverse">
-          {activeThread.map((msg) => {
+          {activeThread.length === 0 && !isComposing ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <p className="text-xs text-slate-300 font-semibold">بانتظار وصول الرسائل أو بدء محادثة</p>
+              <p className="text-[11px] text-slate-400 max-w-sm">
+                يمكنك الضغط على زر <strong>+</strong> في القائمة الجانبية لإرسال رسالة SMS لأي رقم عبر شريحة هاتفك البعيد، أو انتظار استلام رسائل البنوك وأكواد التحقق.
+              </p>
+            </div>
+          ) : (
+            activeThread.map((msg) => {
             const isMe = msg.direction === 'outbound';
             const otpCode = extractOtp(msg.body);
 
@@ -230,7 +261,8 @@ export const SMSMessenger: React.FC = () => {
                 </div>
               </div>
             );
-          })}
+          })
+        )}
         </div>
 
         {/* Input Bar */}

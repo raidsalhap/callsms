@@ -292,15 +292,38 @@ if __name__ == "__main__":
 
               <div>
                 <h4 className="font-bold text-white mb-1.5 flex items-center gap-1.5">
-                  <span>3.</span> ثم اكتب أمر التشغيل في ويندوز:
+                  <span>3.</span> اكتب أمر التشغيل في ويندوز 11:
                 </h4>
                 <div className="bg-slate-950 border border-slate-800 p-2.5 rounded-lg font-mono text-emerald-400 text-xs" dir="ltr">
                   python windows_agent.py
                 </div>
               </div>
 
+              {/* Worldwide Remote Access (When outside the country) */}
+              <div className="bg-gradient-to-r from-purple-950/40 via-slate-900 to-blue-950/40 border border-purple-500/30 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  <h4 className="font-bold text-purple-300 text-xs">
+                    🌐 كيف تتصل بالكمبيوتر وأنت خارج الدولة (عبر الإنترنت بأمان WSS)؟
+                  </h4>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  لأن التطبيق يعمل على رابط مشفر (<code className="text-purple-300">HTTPS</code>)، يحظر المتصفح الاتصال بروابط <code className="text-purple-300">ws://</code> غير المشفرة عبر الإنترنت.
+                  للحصول على رابط مشفر مجاني <code className="text-emerald-400">wss://</code> يربطك من أي دولة في العالم بدون فتح بورتات في الراوتر:
+                </p>
+                <div className="space-y-1.5 bg-slate-950/80 p-2.5 rounded-lg font-mono text-[11px] text-purple-200" dir="ltr">
+                  <p className="text-slate-400 font-sans text-[10px]">خيار 1: باستخدام Cloudflare Tunnel مجاناً (أمر واحد):</p>
+                  <p className="text-emerald-400">cloudflared tunnel --url http://localhost:8765</p>
+                  <p className="text-slate-400 font-sans text-[10px] mt-1">خيار 2: باستخدام ngrok مجاناً:</p>
+                  <p className="text-emerald-400">ngrok http 8765</p>
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  انسخ الرابط الناتج (مثال: <code className="text-sky-300">wss://your-subdomain.trycloudflare.com</code>) وضعه في خانة الربط بالأعلى، وسيعمل اتصالك من أي هاتف في العالم فوراً!
+                </p>
+              </div>
+
               <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-3 text-emerald-300 text-[11px]">
-                💡 <strong>بمجرد تشغيله:</strong> اضغط على زر <strong>"ربط الآن"</strong> في الشريط العلوي للتطبيق، وستلاحظ أن أي رقم تطلبه سيبدأ هاتف الأندرويد بطلبه أمام عينيك فوراً!
+                💡 <strong>بمجرد تشغيله:</strong> اضغط على زر <strong>"ربط الآن"</strong> في الشريط العلوي للتطبيق، وستلاحظ أن أي رقم تطلبه سيبدأ هاتف الأندرويد بطلبه أمام عينيك فوراً دون أي محاكاة!
               </div>
             </div>
 

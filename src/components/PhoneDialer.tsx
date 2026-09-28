@@ -33,11 +33,12 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
   const [callState, setCallState] = useState<CallState>('idle');
   const [activeCall, setActiveCall] = useState<ActiveCall | null>(null);
   const [callTimer, setCallTimer] = useState(0);
-  const [callLogs, setCallLogs] = useState<CallLogItem[]>(telephonyBridge.initialCallLogs);
+  const [callLogs, setCallLogs] = useState<CallLogItem[]>(telephonyBridge.getSavedCallLogs());
   const [activeTab, setActiveTab] = useState<'keypad' | 'logs' | 'contacts'>('keypad');
+  const [showConnectModal, setShowConnectModal] = useState(false);
 
-  // Audio waveform animation
-  const [waveformLevels, setWaveformLevels] = useState<number[]>([30, 60, 45, 80, 20, 75, 40]);
+  // Real Audio waveform from actual microphone
+  const [waveformLevels, setWaveformLevels] = useState<number[]>([15, 15, 15, 15, 15, 15, 15]);
 
   // Handle incoming / remote bridge events
   useEffect(() => {
@@ -47,14 +48,14 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
         setActiveCall({
           id: `call-${Date.now()}`,
           number: payload.number || '+966501234567',
-          contactName: payload.name || 'متصل محلي (من الدولة البعيدة)',
+          contactName: payload.name || 'متصل محلي عبر الشريحة',
           direction: 'incoming',
           startTime: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           durationSeconds: 0,
           isMuted: false,
           isHold: false,
           audioQuality: 'Excellent',
-          latencyMs: 38,
+          latencyMs: telephonyBridge.connectionState.lastPingMs || 25,
         });
       } else if (action === 'CALL_HANGUP') {
         endCall();
@@ -64,28 +65,20 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
     return () => unsubscribe();
   }, []);
 
-  // Duration Timer & Audio Waveform animation during active call
+  // Duration Timer
   useEffect(() => {
     let interval: any = null;
-    let waveInterval: any = null;
 
     if (callState === 'connected') {
       interval = setInterval(() => {
         setCallTimer((prev) => prev + 1);
       }, 1000);
-
-      waveInterval = setInterval(() => {
-        setWaveformLevels(
-          Array.from({ length: 9 }, () => Math.floor(15 + Math.random() * 80))
-        );
-      }, 150);
     } else {
       setCallTimer(0);
     }
 
     return () => {
       clearInterval(interval);
-      clearInterval(waveInterval);
     };
   }, [callState]);
 
@@ -99,8 +92,6 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
     setDialedNumber((prev) => prev.slice(0, -1));
   };
 
-  const [showSimAlert, setShowSimAlert] = useState(false);
-
   const handleStartOutgoingCall = (num?: string) => {
     const target = num || dialedNumber;
     if (!target) return;
@@ -108,7 +99,8 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
     const isLiveConnected = telephonyBridge.connectionState.isConnected;
 
     if (!isLiveConnected) {
-      setShowSimAlert(true);
+      setShowConnectModal(true);
+      return;
     }
 
     setCallState('ringing_outgoing');
@@ -121,35 +113,39 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
       durationSeconds: 0,
       isMuted: false,
       isHold: false,
-      audioQuality: isLiveConnected ? 'Excellent' : 'Fair',
-      latencyMs: isLiveConnected ? telephonyBridge.connectionState.lastPingMs || 30 : 0,
+      audioQuality: 'Excellent',
+      latencyMs: telephonyBridge.connectionState.lastPingMs || 28,
     });
 
-    if (isLiveConnected) {
-      // Send real dial command to Windows 11 Phone Link!
-      telephonyBridge.dialRealNumber(target);
-      // Wait for real connected or set state
-      setTimeout(() => {
-        setCallState('connected');
-      }, 2500);
-    } else {
-      // In simulation mode, connect after brief delay
-      setTimeout(() => {
-        setCallState('connected');
-      }, 2800);
-    }
+    // Send real command to Windows 11 Phone Link!
+    telephonyBridge.dialRealNumber(target);
+
+    // Start live microphone capture for real voice transmission
+    telephonyBridge.startMicrophoneCapture((levels) => {
+      setWaveformLevels(levels);
+    });
+
+    // Wait 2 seconds for dialing and set connected
+    setTimeout(() => {
+      setCallState('connected');
+    }, 2000);
   };
 
   const answerIncomingCall = () => {
     setCallState('connected');
     telephonyBridge.answerRealCall();
-    telephonyBridge.emit('CALL_ANSWERED', { id: activeCall?.id });
+    telephonyBridge.startMicrophoneCapture((levels) => {
+      setWaveformLevels(levels);
+    });
   };
 
   const endCall = () => {
+    telephonyBridge.stopMicrophoneCapture();
+    telephonyBridge.hangupRealCall();
+
     if (activeCall) {
       const durationStr = formatDuration(callTimer);
-      setCallLogs((prev) => [
+      const newLogs: CallLogItem[] = [
         {
           id: `log-${Date.now()}`,
           number: activeCall.number,
@@ -158,15 +154,14 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
           time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
           duration: durationStr,
         },
-        ...prev,
-      ]);
+        ...callLogs,
+      ];
+      setCallLogs(newLogs);
+      telephonyBridge.saveCallLogs(newLogs);
     }
 
-    // Terminate call on Windows 11
-    telephonyBridge.hangupRealCall();
     setCallState('idle');
     setActiveCall(null);
-    telephonyBridge.emit('CALL_HANGUP', {});
   };
 
   const toggleMute = () => {
@@ -526,6 +521,38 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
               </button>
               <span className="text-xs text-emerald-400 font-medium">رد والتحدث</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Production Connection Required Modal */}
+      {showConnectModal && (
+        <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-md z-50 p-6 flex flex-col justify-center items-center text-center animate-in fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-4">
+            <RadioTower className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-2">
+            يلزم ربط خادم Windows 11 للاتصال الحقيقي
+          </h3>
+          <p className="text-xs text-slate-300 leading-relaxed max-w-xs mb-6">
+            تم تفعيل الوضع الرسمي للنظام. لإجراء المكالمة عبر شريحة الهاتف وسماع الصوت الحقيقي، يجب أن يكون خادم الويندوز متصلاً عبر الشريط العلوي.
+          </p>
+          <div className="flex flex-col w-full max-w-xs gap-2">
+            <button
+              onClick={() => {
+                setShowConnectModal(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+            >
+              الذهاب إلى شريط الربط وتوصيل الويندوز
+            </button>
+            <button
+              onClick={() => setShowConnectModal(false)}
+              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition cursor-pointer"
+            >
+              إلغاء
+            </button>
           </div>
         </div>
       )}
