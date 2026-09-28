@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Header, MainNavTab } from './components/Header';
+import { HostConnectionBar } from './components/HostConnectionBar';
 import { PhoneDialer } from './components/PhoneDialer';
 import { SMSMessenger } from './components/SMSMessenger';
 import { BluetoothGatewayServer } from './components/BluetoothGatewayServer';
@@ -30,6 +31,9 @@ export default function App() {
         onTabChange={setActiveTab}
         onOpenHelp={() => setShowHelpModal(true)}
       />
+
+      {/* Real Host (Windows 11) Connection Bar */}
+      <HostConnectionBar />
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">

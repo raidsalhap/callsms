@@ -99,9 +99,17 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
     setDialedNumber((prev) => prev.slice(0, -1));
   };
 
+  const [showSimAlert, setShowSimAlert] = useState(false);
+
   const handleStartOutgoingCall = (num?: string) => {
     const target = num || dialedNumber;
     if (!target) return;
+
+    const isLiveConnected = telephonyBridge.connectionState.isConnected;
+
+    if (!isLiveConnected) {
+      setShowSimAlert(true);
+    }
 
     setCallState('ringing_outgoing');
     setActiveCall({
@@ -113,22 +121,28 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
       durationSeconds: 0,
       isMuted: false,
       isHold: false,
-      audioQuality: 'Excellent',
-      latencyMs: 42,
+      audioQuality: isLiveConnected ? 'Excellent' : 'Fair',
+      latencyMs: isLiveConnected ? telephonyBridge.connectionState.lastPingMs || 30 : 0,
     });
 
-    // Notify bridge server to send ATD+number to mobile via Bluetooth
-    telephonyBridge.emit('DIAL_OUTGOING', { number: target });
-
-    // Simulate answer after 2.5 seconds
-    setTimeout(() => {
-      setCallState('connected');
-      telephonyBridge.emit('CALL_CONNECTED', { number: target });
-    }, 2800);
+    if (isLiveConnected) {
+      // Send real dial command to Windows 11 Phone Link!
+      telephonyBridge.dialRealNumber(target);
+      // Wait for real connected or set state
+      setTimeout(() => {
+        setCallState('connected');
+      }, 2500);
+    } else {
+      // In simulation mode, connect after brief delay
+      setTimeout(() => {
+        setCallState('connected');
+      }, 2800);
+    }
   };
 
   const answerIncomingCall = () => {
     setCallState('connected');
+    telephonyBridge.answerRealCall();
     telephonyBridge.emit('CALL_ANSWERED', { id: activeCall?.id });
   };
 
@@ -148,6 +162,8 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
       ]);
     }
 
+    // Terminate call on Windows 11
+    telephonyBridge.hangupRealCall();
     setCallState('idle');
     setActiveCall(null);
     telephonyBridge.emit('CALL_HANGUP', {});
@@ -218,15 +234,22 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
                 {callState === 'ringing_outgoing' ? (
                   <span className="text-amber-400 flex items-center gap-1.5 font-medium">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                    جاري الاتصال عبر شبكة الهاتف الخلوية...
+                    {telephonyBridge.connectionState.isConnected ? 'جاري طلب الرقم الحقيقي عبر Phone Link...' : 'جاري المحاكاة التوضيحية للاتصال...'}
                   </span>
                 ) : (
                   <span className="text-emerald-400 font-mono font-bold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                    {formatDuration(callTimer)} • مكالمة محلية مشفرة
+                    {formatDuration(callTimer)} • {telephonyBridge.connectionState.isConnected ? 'مكالمة فعلية جارية عبر الشريحة' : 'محاكاة توضيحية'}
                   </span>
                 )}
               </div>
+
+              {/* Status Warning if not connected to Windows Host */}
+              {!telephonyBridge.connectionState.isConnected && (
+                <div className="mt-3 p-2 bg-amber-950/50 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 text-center leading-relaxed">
+                  ⚠️ <strong>تنبيه:</strong> أنت تعمل في <strong>وضع المحاكاة</strong>. لكي يُجري هاتفك المكالمة الحقيقية وتسمع الصوت، يجب تشغيل <strong>سكريبت Windows 11</strong> والاتصال به من الشريط العلوي.
+                </div>
+              )}
             </div>
           </div>
 

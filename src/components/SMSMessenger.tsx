@@ -71,8 +71,13 @@ export const SMSMessenger: React.FC = () => {
     setIsComposing(false);
     setSelectedContact(recipient);
 
-    // Notify bridge to send via Bluetooth AT+CMGS
-    telephonyBridge.emit('SEND_SMS', { recipient, body: sentMsg.body });
+    // Send real SMS through Windows 11 Phone Link if connected
+    if (telephonyBridge.connectionState.isConnected) {
+      telephonyBridge.sendRealSMS(recipient, sentMsg.body);
+    } else {
+      // In simulation mode
+      telephonyBridge.emit('SEND_SMS', { recipient, body: sentMsg.body });
+    }
   };
 
   const activeThread = messages.filter(
