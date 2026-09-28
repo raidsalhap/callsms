@@ -12,10 +12,13 @@ const STORAGE_KEY_URL = 'rd_gateway_server_url';
 const STORAGE_KEY_SMS = 'rd_gateway_sms_list';
 const STORAGE_KEY_LOGS = 'rd_gateway_call_logs';
 
+const DEFAULT_TUNNEL_URL = 'wss://luther-boolean-ground-pockets.trycloudflare.com';
+
 export class TelephonyBridgeService {
   private ws: WebSocket | null = null;
   private listeners: Set<(action: string, payload: any) => void> = new Set();
   private pingInterval: any = null;
+  private autoReconnectTimeout: any = null;
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private micStream: MediaStream | null = null;
@@ -24,10 +27,20 @@ export class TelephonyBridgeService {
   public connectionState: HostConnectionState = {
     isConnected: false,
     isConnecting: false,
-    serverUrl: typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_URL) || 'ws://localhost:8765' : 'ws://localhost:8765',
+    serverUrl: typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_TUNNEL_URL : DEFAULT_TUNNEL_URL,
     error: null,
     lastPingMs: 0,
   };
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      // Auto connect to the user's active tunnel URL on app startup
+      setTimeout(() => {
+        const urlToUse = localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_TUNNEL_URL;
+        this.connectToHost(urlToUse);
+      }, 500);
+    }
+  }
 
   public gatewayStatus: MobileGatewayStatus = {
     pairedDeviceName: 'غير متصل (بانتظار خادم ويندوز)',

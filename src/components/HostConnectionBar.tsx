@@ -25,6 +25,9 @@ export const HostConnectionBar: React.FC = () => {
     const unsub = telephonyBridge.subscribe((action, payload) => {
       if (action === 'HOST_CONNECTION_CHANGED') {
         setConn({ ...payload });
+        if (payload.serverUrl) {
+          setServerUrl(payload.serverUrl);
+        }
       }
     });
     return () => unsub();
