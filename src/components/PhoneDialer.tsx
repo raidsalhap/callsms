@@ -59,6 +59,8 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
         });
       } else if (action === 'CALL_HANGUP') {
         endCall();
+      } else if (action === 'LOGS_UPDATED') {
+        setCallLogs([...payload]);
       }
     });
 
@@ -145,17 +147,21 @@ export const PhoneDialer: React.FC<PhoneDialerProps> = ({ onSimulateIncoming }) 
 
     if (activeCall) {
       const durationStr = formatDuration(callTimer);
-      const newLogs: CallLogItem[] = [
-        {
-          id: `log-${Date.now()}`,
-          number: activeCall.number,
-          name: activeCall.contactName,
-          type: activeCall.direction === 'incoming' ? 'incoming' : 'outgoing',
-          time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-          duration: durationStr,
-        },
-        ...callLogs,
-      ];
+      const isAnswered = callTimer > 0;
+      const newLogItem: CallLogItem = {
+        id: `log-${Date.now()}`,
+        number: activeCall.number,
+        name: activeCall.contactName,
+        type: isAnswered
+          ? (activeCall.direction === 'incoming' ? 'incoming' : 'outgoing')
+          : 'missed',
+        status: isAnswered ? 'answered' : 'missed',
+        time: 'اليوم، ' + new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        duration: isAnswered ? `${durationStr} دقيقة` : '00:00 (لم يرد)',
+        durationSeconds: callTimer,
+        timestamp: Date.now(),
+      };
+      const newLogs = [newLogItem, ...callLogs];
       setCallLogs(newLogs);
       telephonyBridge.saveCallLogs(newLogs);
     }

@@ -40,6 +40,9 @@ export interface CallLogItem {
   number: string;
   name?: string;
   type: 'missed' | 'incoming' | 'outgoing';
+  status?: 'answered' | 'missed' | 'rejected' | 'busy';
   time: string;
   duration: string;
+  durationSeconds?: number;
+  timestamp?: number;
 }

@@ -8,10 +8,11 @@ import {
   Radio,
   HelpCircle,
   Smartphone,
+  Clock,
 } from 'lucide-react';
 import { PWAInstallButton } from './PWAInstallButton';
 
-export type MainNavTab = 'dialer' | 'sms' | 'gateway' | 'guide' | 'remotedesk';
+export type MainNavTab = 'dialer' | 'logs' | 'sms' | 'gateway' | 'guide' | 'remotedesk';
 
 interface HeaderProps {
   activeTab: MainNavTab;
@@ -64,6 +65,18 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, onTabChange, onOpenHe
             >
               <Smartphone className="w-4 h-4 text-emerald-300" />
               <span>هاتفي للاتصال (Dialer)</span>
+            </button>
+
+            <button
+              onClick={() => onTabChange('logs')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer shrink-0 ${
+                activeTab === 'logs'
+                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <Clock className="w-4 h-4 text-emerald-300" />
+              <span>سجل المكالمات (Call Logs)</span>
             </button>
 
             <button

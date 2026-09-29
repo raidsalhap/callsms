@@ -29,6 +29,64 @@ const getInitialServerUrl = (): string => {
   }
 };
 
+const DEFAULT_SAMPLE_LOGS: CallLogItem[] = [
+  {
+    id: 'log-1',
+    number: '+966551234567',
+    name: 'م. أحمد الشمري',
+    type: 'incoming',
+    status: 'answered',
+    time: 'اليوم، 01:15 م',
+    duration: '03:42 دقيقة',
+    durationSeconds: 222,
+    timestamp: Date.now() - 3600000,
+  },
+  {
+    id: 'log-2',
+    number: '+966509876543',
+    name: 'شركة الخدمات التقنية',
+    type: 'missed',
+    status: 'missed',
+    time: 'اليوم، 11:30 ص',
+    duration: '00:00 (لم يرد)',
+    durationSeconds: 0,
+    timestamp: Date.now() - 10800000,
+  },
+  {
+    id: 'log-3',
+    number: '+971501122334',
+    name: 'مكتب دبي التجاري',
+    type: 'outgoing',
+    status: 'answered',
+    time: 'أمس، 04:20 م',
+    duration: '07:15 دقيقة',
+    durationSeconds: 435,
+    timestamp: Date.now() - 86400000,
+  },
+  {
+    id: 'log-4',
+    number: '+966540001122',
+    name: 'خالد السالم',
+    type: 'outgoing',
+    status: 'missed',
+    time: 'أمس، 02:10 م',
+    duration: '00:00 (لم يرد)',
+    durationSeconds: 0,
+    timestamp: Date.now() - 93600000,
+  },
+  {
+    id: 'log-5',
+    number: '+9668001160000',
+    name: 'خدمة عملاء البنك الأهلي',
+    type: 'incoming',
+    status: 'answered',
+    time: '26 سبتمبر، 10:05 ص',
+    duration: '05:30 دقيقة',
+    durationSeconds: 330,
+    timestamp: Date.now() - 172800000,
+  },
+];
+
 export class TelephonyBridgeService {
   private ws: WebSocket | null = null;
   private listeners: Set<(action: string, payload: any) => void> = new Set();
@@ -89,12 +147,16 @@ export class TelephonyBridgeService {
   }
 
   public getSavedCallLogs(): CallLogItem[] {
-    if (typeof window === 'undefined') return [];
+    if (typeof window === 'undefined') return DEFAULT_SAMPLE_LOGS;
     try {
       const data = localStorage.getItem(STORAGE_KEY_LOGS);
-      return data ? JSON.parse(data) : [];
+      if (!data) {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(DEFAULT_SAMPLE_LOGS));
+        return DEFAULT_SAMPLE_LOGS;
+      }
+      return JSON.parse(data);
     } catch {
-      return [];
+      return DEFAULT_SAMPLE_LOGS;
     }
   }
 
@@ -102,9 +164,26 @@ export class TelephonyBridgeService {
     if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+      this.notify('LOGS_UPDATED', logs);
     } catch (e) {
       console.warn('Failed to save call logs to localStorage:', e);
     }
+  }
+
+  public addCallLog(log: CallLogItem) {
+    const current = this.getSavedCallLogs();
+    const updated = [log, ...current];
+    this.saveCallLogs(updated);
+  }
+
+  public deleteCallLog(id: string) {
+    const current = this.getSavedCallLogs();
+    const updated = current.filter((l) => l.id !== id);
+    this.saveCallLogs(updated);
+  }
+
+  public clearCallLogs() {
+    this.saveCallLogs([]);
   }
 
   // Connect to the Python Agent on Windows 11

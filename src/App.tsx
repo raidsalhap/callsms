@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header, MainNavTab } from './components/Header';
 import { HostConnectionBar } from './components/HostConnectionBar';
 import { PhoneDialer } from './components/PhoneDialer';
+import { CallLogs } from './components/CallLogs';
 import { SMSMessenger } from './components/SMSMessenger';
 import { BluetoothGatewayServer } from './components/BluetoothGatewayServer';
 import { TelephonyGuide } from './components/TelephonyGuide';
@@ -56,6 +57,17 @@ export default function App() {
             </div>
             <PhoneDialer />
           </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <CallLogs
+            onCallNumber={(num) => {
+              setActiveTab('dialer');
+            }}
+            onSendSMS={(num) => {
+              setActiveTab('sms');
+            }}
+          />
         )}
 
         {activeTab === 'sms' && (
