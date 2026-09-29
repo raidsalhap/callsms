@@ -12,7 +12,22 @@ const STORAGE_KEY_URL = 'rd_gateway_server_url';
 const STORAGE_KEY_SMS = 'rd_gateway_sms_list';
 const STORAGE_KEY_LOGS = 'rd_gateway_call_logs';
 
-const DEFAULT_TUNNEL_URL = 'wss://luther-boolean-ground-pockets.trycloudflare.com';
+export const DEFAULT_TUNNEL_URL = 'wss://luther-boolean-ground-pockets.trycloudflare.com';
+
+const getInitialServerUrl = (): string => {
+  if (typeof window === 'undefined') return DEFAULT_TUNNEL_URL;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_URL);
+    // If empty or previously pointing to localhost, override with active Cloudflare Tunnel
+    if (!saved || saved.includes('localhost') || saved.includes('127.0.0.1')) {
+      localStorage.setItem(STORAGE_KEY_URL, DEFAULT_TUNNEL_URL);
+      return DEFAULT_TUNNEL_URL;
+    }
+    return saved;
+  } catch {
+    return DEFAULT_TUNNEL_URL;
+  }
+};
 
 export class TelephonyBridgeService {
   private ws: WebSocket | null = null;
@@ -27,7 +42,7 @@ export class TelephonyBridgeService {
   public connectionState: HostConnectionState = {
     isConnected: false,
     isConnecting: false,
-    serverUrl: typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_TUNNEL_URL : DEFAULT_TUNNEL_URL,
+    serverUrl: getInitialServerUrl(),
     error: null,
     lastPingMs: 0,
   };
@@ -36,9 +51,9 @@ export class TelephonyBridgeService {
     if (typeof window !== 'undefined') {
       // Auto connect to the user's active tunnel URL on app startup
       setTimeout(() => {
-        const urlToUse = localStorage.getItem(STORAGE_KEY_URL) || DEFAULT_TUNNEL_URL;
+        const urlToUse = getInitialServerUrl();
         this.connectToHost(urlToUse);
-      }, 500);
+      }, 300);
     }
   }
 

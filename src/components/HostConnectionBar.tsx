@@ -13,11 +13,11 @@ import {
   CheckCircle2,
   RefreshCw,
 } from 'lucide-react';
-import { telephonyBridge, HostConnectionState } from '../services/telephonyBridge';
+import { telephonyBridge, HostConnectionState, DEFAULT_TUNNEL_URL } from '../services/telephonyBridge';
 
 export const HostConnectionBar: React.FC = () => {
   const [conn, setConn] = useState<HostConnectionState>(telephonyBridge.connectionState);
-  const [serverUrl, setServerUrl] = useState(telephonyBridge.connectionState.serverUrl);
+  const [serverUrl, setServerUrl] = useState(telephonyBridge.connectionState.serverUrl || DEFAULT_TUNNEL_URL);
   const [showScriptModal, setShowScriptModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -178,40 +178,58 @@ if __name__ == "__main__":
           {/* Quick Connect controls */}
           <div className="flex items-center gap-2 flex-wrap">
             {!conn.isConnected ? (
-              <form onSubmit={handleConnect} className="flex items-center gap-1.5">
-                <input
-                  type="text"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  placeholder="ws://localhost:8765"
-                  className="bg-slate-950 border border-slate-700 text-slate-200 text-xs px-2.5 py-1 rounded-lg w-44 focus:outline-none focus:border-blue-500 font-mono"
-                  dir="ltr"
-                />
+              <form onSubmit={handleConnect} className="flex items-center gap-1.5 flex-wrap">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={serverUrl}
+                    onChange={(e) => setServerUrl(e.target.value)}
+                    placeholder={DEFAULT_TUNNEL_URL}
+                    className="bg-slate-950 border border-slate-700 text-emerald-300 text-xs px-3 py-1.5 rounded-lg w-64 sm:w-80 md:w-96 focus:outline-none focus:border-emerald-500 font-mono shadow-inner text-left"
+                    dir="ltr"
+                  />
+                  {serverUrl !== DEFAULT_TUNNEL_URL && (
+                    <button
+                      type="button"
+                      onClick={() => setServerUrl(DEFAULT_TUNNEL_URL)}
+                      className="absolute right-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded cursor-pointer transition"
+                      title="استعادة الرابط الافتراضي"
+                    >
+                      استعادة
+                    </button>
+                  )}
+                </div>
+
                 <button
                   type="submit"
                   disabled={conn.isConnecting}
-                  className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium px-3 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
                 >
-                  <Wifi className="w-3 h-3" />
-                  ربط الآن
+                  <Wifi className="w-3.5 h-3.5" />
+                  <span>ربط الآن</span>
                 </button>
               </form>
             ) : (
-              <button
-                onClick={handleDisconnect}
-                className="bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700/50 text-rose-300 text-xs px-3 py-1 rounded-lg transition flex items-center gap-1 cursor-pointer"
-              >
-                <WifiOff className="w-3 h-3" />
-                فصل الاتصال
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-emerald-400 text-xs bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-lg" dir="ltr">
+                  {serverUrl}
+                </span>
+                <button
+                  onClick={handleDisconnect}
+                  className="bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700/50 text-rose-300 text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                >
+                  <WifiOff className="w-3.5 h-3.5" />
+                  <span>فصل الاتصال</span>
+                </button>
+              </div>
             )}
 
             <button
               onClick={() => setShowScriptModal(true)}
-              className="bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs px-2.5 py-1 rounded-lg transition flex items-center gap-1.5 cursor-pointer font-medium"
+              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer font-medium"
             >
-              <Terminal className="w-3 h-3 text-emerald-400" />
-              سكريبت تشغيل Windows 11
+              <Terminal className="w-3.5 h-3.5 text-blue-400" />
+              <span>إرشادات الخادم</span>
             </button>
           </div>
         </div>
@@ -320,9 +338,12 @@ if __name__ == "__main__":
                   <p className="text-slate-400 font-sans text-[10px] mt-1">خيار 2: باستخدام ngrok مجاناً:</p>
                   <p className="text-emerald-400">ngrok http 8765</p>
                 </div>
-                <p className="text-[10px] text-slate-400">
-                  انسخ الرابط الناتج (مثال: <code className="text-sky-300">wss://your-subdomain.trycloudflare.com</code>) وضعه في خانة الربط بالأعلى، وسيعمل اتصالك من أي هاتف في العالم فوراً!
-                </p>
+                <div className="bg-emerald-950/40 border border-emerald-500/30 p-2.5 rounded-lg text-[11px] text-emerald-300">
+                  ✅ <strong>الرابط النشط المعتمد في التطبيق حالياً:</strong>
+                  <div className="font-mono text-white text-[11px] mt-1 select-all" dir="ltr">
+                    wss://luther-boolean-ground-pockets.trycloudflare.com
+                  </div>
+                </div>
               </div>
 
               <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-3 text-emerald-300 text-[11px]">
