@@ -50,7 +50,7 @@ export class SignalingBus {
       try {
         fn(log);
       } catch (err) {
-        console.error(err);
+        console.warn('Audit listener dispatch notice:', err);
       }
     });
   }
@@ -60,7 +60,7 @@ export class SignalingBus {
       try {
         fn(message);
       } catch (err) {
-        console.error(err);
+        console.warn('Remote event listener notice:', err);
       }
     });
   }

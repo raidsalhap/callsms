@@ -84,7 +84,7 @@ export class TelephonyBridgeService {
     try {
       localStorage.setItem(STORAGE_KEY_SMS, JSON.stringify(messages));
     } catch (e) {
-      console.error(e);
+      console.warn('Failed to save SMS to localStorage:', e);
     }
   }
 
@@ -103,7 +103,7 @@ export class TelephonyBridgeService {
     try {
       localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
     } catch (e) {
-      console.error(e);
+      console.warn('Failed to save call logs to localStorage:', e);
     }
   }
 
@@ -111,10 +111,20 @@ export class TelephonyBridgeService {
   public connectToHost(url: string) {
     if (this.ws) {
       try {
+        this.ws.onopen = null;
+        this.ws.onerror = null;
+        this.ws.onclose = null;
+        this.ws.onmessage = null;
         this.ws.close();
       } catch (e) {
-        console.error(e);
+        console.warn('Previous WS close info:', e);
       }
+      this.ws = null;
+    }
+
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
     }
 
     let cleanUrl = url.trim();
@@ -155,6 +165,7 @@ export class TelephonyBridgeService {
         this.sendToWs('HELLO', { client: 'RemoteDesk-OfficialClient', time: Date.now() });
 
         // Ping loop to measure real latency
+        if (this.pingInterval) clearInterval(this.pingInterval);
         this.pingInterval = setInterval(() => {
           if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.sendToWs('PING', { time: Date.now() });
@@ -171,12 +182,13 @@ export class TelephonyBridgeService {
         }
       };
 
-      this.ws.onerror = (err) => {
-        console.error('WS Connection error:', err);
+      this.ws.onerror = () => {
+        // Silently mark state as disconnected with friendly message
+        console.warn('Telephony Bridge: Host unreachable or disconnected at', cleanUrl);
         const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-        let errorMsg = 'تعذر الاتصال بخادم ويندوز 11. تأكد من تشغيل سكريبت windows_agent.py على جهازك.';
+        let errorMsg = 'الخادم غير متصل حالياً. تأكد من تشغيل windows_agent.py ونفق Cloudflare.';
         if (isHttps && cleanUrl.startsWith('ws://')) {
-          errorMsg = 'تنبيه أمني: المتصفح يحظر اتصالات ws:// غير المشفرة على مواقع HTTPS. يرجى استخدام نفق مشفر wss:// (مثل Cloudflare Tunnel أو ngrok) للربط من خارج الشبكة.';
+          errorMsg = 'تنبيه: المتصفح يحظر اتصالات ws:// غير المشفرة على مواقع HTTPS. يرجى استخدام رابط wss:// المشفر.';
         }
         this.connectionState.error = errorMsg;
         this.connectionState.isConnecting = false;
@@ -189,7 +201,10 @@ export class TelephonyBridgeService {
         this.connectionState.isConnected = false;
         this.connectionState.isConnecting = false;
         this.gatewayStatus.isConnected = false;
-        clearInterval(this.pingInterval);
+        if (this.pingInterval) {
+          clearInterval(this.pingInterval);
+          this.pingInterval = null;
+        }
         this.notify('HOST_CONNECTION_CHANGED', { ...this.connectionState });
       };
     } catch (e: any) {
@@ -335,7 +350,7 @@ export class TelephonyBridgeService {
       try {
         this.audioContext.close();
       } catch (e) {
-        console.error(e);
+        console.warn('AudioContext close notice:', e);
       }
       this.audioContext = null;
     }
@@ -364,7 +379,7 @@ export class TelephonyBridgeService {
       try {
         fn(action, payload);
       } catch (err) {
-        console.error(err);
+        console.warn('Listener dispatch notice:', err);
       }
     });
   }

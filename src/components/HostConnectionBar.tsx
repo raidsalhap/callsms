@@ -234,15 +234,29 @@ if __name__ == "__main__":
           </div>
         </div>
 
-        {conn.error && (
-          <div className="max-w-7xl mx-auto mt-1.5 text-[11px] text-rose-300 bg-rose-950/40 border border-rose-800/50 rounded px-2.5 py-1 flex items-center justify-between">
-            <span>{conn.error}</span>
-            <button
-              onClick={() => setShowScriptModal(true)}
-              className="underline text-blue-300 hover:text-blue-200 ml-2 cursor-pointer"
-            >
-              طريقة تشغيل السكريبت في دقيقة
-            </button>
+        {conn.error && !conn.isConnected && (
+          <div className="max-w-7xl mx-auto mt-2 text-[11px] text-amber-300 bg-amber-950/40 border border-amber-800/50 rounded-xl px-3 py-1.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>{conn.error}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => telephonyBridge.connectToHost(serverUrl)}
+                className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 px-2.5 py-0.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>إعادة المحاولة</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowScriptModal(true)}
+                className="underline text-blue-300 hover:text-blue-200 cursor-pointer"
+              >
+                إرشادات التشغيل
+              </button>
+            </div>
           </div>
         )}
       </div>
